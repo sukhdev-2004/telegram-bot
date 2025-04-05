@@ -1,0 +1,4 @@
+pyTelegramBotAPI
+wikipedia
+pyjokes
+googlesearch-python
