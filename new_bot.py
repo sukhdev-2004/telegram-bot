@@ -5,6 +5,8 @@ import pyjokes
 import wikipedia
 from googlesearch import search
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
+import requests
+from bs4 import BeautifulSoup
 
 # Telegram Bot Token
 TOKEN = "7765443029:AAFm-IlGBaXJ6BVYCGbeYSBljEO0xlf7CtA"
@@ -19,6 +21,27 @@ def get_main_menu():
     markup.add(KeyboardButton("Hello 👋"), KeyboardButton("Tell me a joke 🤣"))
     markup.add(KeyboardButton("How are you?"), KeyboardButton("Help ❓"))
     return markup
+
+# Fetch Google Snippets
+def fetch_google_snippets(query):
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        }
+        search_url = f"https://www.google.com/search?q={query}"
+        response = requests.get(search_url, headers=headers)
+        soup = BeautifulSoup(response.text, "html.parser")
+        snippets = []
+
+        for g in soup.find_all('div', class_='BNeawe s3v9rd AP7Wnd'):
+            text = g.get_text()
+            if text not in snippets:
+                snippets.append(text)
+            if len(snippets) >= 5:
+                break
+        return snippets
+    except Exception as e:
+        return [f"Failed to fetch snippets: {e}"]
 
 # /start command
 @bot.message_handler(commands=['start'])
@@ -46,7 +69,7 @@ def send_time(message):
     now = datetime.datetime.now().strftime("%H:%M:%S")
     bot.send_message(message.chat.id, f"⏰ Current time: {now}")
 
-# Wikipedia command with Google fallback
+# Wikipedia + Google fallback command
 @bot.message_handler(commands=['wiki'])
 def wiki_search(message):
     query = message.text.replace("/wiki", "").strip()
@@ -55,17 +78,14 @@ def wiki_search(message):
         return
     try:
         summary = wikipedia.summary(query, sentences=3)
-        bot.send_message(message.chat.id, f"📚 QuickBot says:\n\n{summary}")
+        bot.send_message(message.chat.id, f"📚 Wikipedia says:\n\n{summary}")
     except:
         bot.send_message(message.chat.id, "❌ Couldn't fetch from Wikipedia. Trying Google...")
 
-    # Always return Google results for more info
-    try:
-        bot.send_message(message.chat.id, "🔍 Top Google results:")
-        for result in search(query, num_results=5):
-            bot.send_message(message.chat.id, result)
-    except Exception as e:
-        bot.send_message(message.chat.id, f"⚠️ Google search failed: {e}")
+    snippets = fetch_google_snippets(query)
+    bot.send_message(message.chat.id, "🔍 Top information from Google:")
+    for snippet in snippets:
+        bot.send_message(message.chat.id, f"• {snippet}")
 
 # General Text Message Handler
 @bot.message_handler(func=lambda message: True)
@@ -103,17 +123,14 @@ def handle_text(message):
             return
         try:
             summary = wikipedia.summary(query, sentences=3)
-            bot.send_message(message.chat.id, f"📚 QuickBot says:\n\n{summary}")
+            bot.send_message(message.chat.id, f"📚 Wikipedia says:\n\n{summary}")
         except:
             bot.send_message(message.chat.id, "❌ Couldn't fetch from Wikipedia.")
 
-        # Google search fallback
-        try:
-            bot.send_message(message.chat.id, "🔍 Here are 5 top results:")
-            for result in search(query, num_results=5):
-                bot.send_message(message.chat.id, result)
-        except Exception as e:
-            bot.send_message(message.chat.id, f"⚠️ search failed: {e}")
+        snippets = fetch_google_snippets(query)
+        bot.send_message(message.chat.id, "🔍 Here's what I found on Google:")
+        for snippet in snippets:
+            bot.send_message(message.chat.id, f"• {snippet}")
     else:
         bot.send_message(message.chat.id, "I'm not sure what you mean!")
 
