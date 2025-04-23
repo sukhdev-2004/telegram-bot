@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 # Telegram Bot Token
-TOKEN = "YOUR_BOT_TOKEN_HERE"
+TOKEN = "7765443029:AAFm-IlGBaXJ6BVYCGbeYSBljEO0xlf7CtA"
 bot = telebot.TeleBot(TOKEN)
 
 # Keyboard Buttons
