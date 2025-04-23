@@ -2,18 +2,13 @@ import telebot
 import random
 import datetime
 import pyjokes
-import wikipedia
-from googlesearch import search
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 import requests
 from bs4 import BeautifulSoup
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 # Telegram Bot Token
-TOKEN = "7765443029:AAFm-IlGBaXJ6BVYCGbeYSBljEO0xlf7CtA"
+TOKEN = "YOUR_BOT_TOKEN_HERE"
 bot = telebot.TeleBot(TOKEN)
-
-# Set Wikipedia language
-wikipedia.set_lang("en")
 
 # Keyboard Buttons
 def get_main_menu():
@@ -35,13 +30,13 @@ def fetch_google_snippets(query):
 
         for g in soup.find_all('div', class_='BNeawe s3v9rd AP7Wnd'):
             text = g.get_text()
-            if text not in snippets:
+            if text not in snippets and len(text.split()) > 5:
                 snippets.append(text)
             if len(snippets) >= 5:
                 break
-        return snippets
+        return snippets or ["Sorry, I couldn't find anything useful."]
     except Exception as e:
-        return [f"Failed to fetch snippets: {e}"]
+        return [f"Error fetching from Google: {e}"]
 
 # /start command
 @bot.message_handler(commands=['start'])
@@ -53,39 +48,20 @@ def send_welcome(message):
 def send_help(message):
     help_text = """Here are some things I can do:
 • Tell jokes
-• Share fun facts
-• Show a random quote
-• Answer general questions using Wikipedia and Google
-Just type your request or use the buttons below."""
+• Share fun facts or quotes
+• Answer general questions using Google
+Just type anything you want to know or use the buttons."""
     bot.send_message(message.chat.id, help_text)
 
 # /info and /time
 @bot.message_handler(commands=['info'])
 def send_info(message):
-    bot.send_message(message.chat.id, "I'm a Telegram bot built with Python and Telebot!")
+    bot.send_message(message.chat.id, "I'm a Telegram bot powered by Google search and Python!")
 
 @bot.message_handler(commands=['time'])
 def send_time(message):
     now = datetime.datetime.now().strftime("%H:%M:%S")
     bot.send_message(message.chat.id, f"⏰ Current time: {now}")
-
-# Wikipedia + Google fallback command
-@bot.message_handler(commands=['wiki'])
-def wiki_search(message):
-    query = message.text.replace("/wiki", "").strip()
-    if not query:
-        bot.send_message(message.chat.id, "❗ Type something after /wiki like `/wiki moon`", parse_mode='Markdown')
-        return
-    try:
-        summary = wikipedia.summary(query, sentences=3)
-        bot.send_message(message.chat.id, f"📚 Wikipedia says:\n\n{summary}")
-    except:
-        bot.send_message(message.chat.id, "❌ Couldn't fetch from Wikipedia. Trying Google...")
-
-    snippets = fetch_google_snippets(query)
-    bot.send_message(message.chat.id, "🔍 Top information from Google:")
-    for snippet in snippets:
-        bot.send_message(message.chat.id, f"• {snippet}")
 
 # General Text Message Handler
 @bot.message_handler(func=lambda message: True)
@@ -114,25 +90,11 @@ def handle_text(message):
             "Bananas are berries, but strawberries aren’t."
         ]
         bot.send_message(message.chat.id, random.choice(facts))
-    elif "help" in text:
-        send_help(message)
-    elif text.startswith("who is") or text.startswith("what is") or text.startswith("search"):
-        query = text.replace("who is", "").replace("what is", "").replace("search", "").strip()
-        if not query:
-            bot.send_message(message.chat.id, "❗ Type something like `who is Elon Musk`.")
-            return
-        try:
-            summary = wikipedia.summary(query, sentences=3)
-            bot.send_message(message.chat.id, f"📚 Wikipedia says:\n\n{summary}")
-        except:
-            bot.send_message(message.chat.id, "❌ Couldn't fetch from Wikipedia.")
-
-        snippets = fetch_google_snippets(query)
-        bot.send_message(message.chat.id, "🔍 Here's what I found on Google:")
+    else:
+        bot.send_message(message.chat.id, f"🔍 Searching Google for: {text}")
+        snippets = fetch_google_snippets(text)
         for snippet in snippets:
             bot.send_message(message.chat.id, f"• {snippet}")
-    else:
-        bot.send_message(message.chat.id, "I'm not sure what you mean!")
 
 # Handle stickers
 @bot.message_handler(content_types=['sticker'])
