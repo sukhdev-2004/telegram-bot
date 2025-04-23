@@ -7,7 +7,7 @@ from googlesearch import search
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 # Telegram Bot Token
-TOKEN = "7765443029:AAEWyw2Q8XOxj2cio1R-0riTW9HlXQc1vRg"
+TOKEN = "your token"
 bot = telebot.TeleBot(TOKEN)
 
 # Set Wikipedia language
