@@ -6,22 +6,22 @@ import requests
 from bs4 import BeautifulSoup
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
-# Telegram Bot Token
+# Your Telegram Bot Token
 TOKEN = "7765443029:AAFm-IlGBaXJ6BVYCGbeYSBljEO0xlf7CtA"
 bot = telebot.TeleBot(TOKEN)
 
-# Keyboard Buttons
+# Keyboard UI
 def get_main_menu():
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add(KeyboardButton("Hello 👋"), KeyboardButton("Tell me a joke 🤣"))
     markup.add(KeyboardButton("How are you?"), KeyboardButton("Help ❓"))
     return markup
 
-# Fetch Google Snippets
+# Get Google Snippets and link
 def fetch_google_snippets(query):
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+            "User-Agent": "Mozilla/5.0"
         }
         search_url = f"https://www.google.com/search?q={query}"
         response = requests.get(search_url, headers=headers)
@@ -32,79 +32,77 @@ def fetch_google_snippets(query):
             text = g.get_text()
             if text not in snippets and len(text.split()) > 5:
                 snippets.append(text)
-            if len(snippets) >= 5:
+            if len(snippets) >= 3:
                 break
-        return snippets or ["Sorry, I couldn't find anything useful."]
-    except Exception as e:
-        return [f"Error fetching from Google: {e}"]
 
-# /start command
+        if not snippets:
+            snippets.append("❗ Sorry, no useful results found.")
+
+        return snippets, f"https://www.google.com/search?q={query.replace(' ', '+')}"
+    except Exception as e:
+        return [f"❌ Error fetching info: {e}"], None
+
+# Bot /start
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.send_message(message.chat.id, "Hello! I'm your smart Telegram bot. Choose an option below.", reply_markup=get_main_menu())
+    bot.send_message(message.chat.id, "Hi! I’m your smart Google-powered bot. Ask me anything!", reply_markup=get_main_menu())
 
-# /help command
+# Bot /help
 @bot.message_handler(commands=['help'])
 def send_help(message):
-    help_text = """Here are some things I can do:
-• Tell jokes
-• Share fun facts or quotes
-• Answer general questions using Google
-Just type anything you want to know or use the buttons."""
-    bot.send_message(message.chat.id, help_text)
+    bot.send_message(message.chat.id, "💡 Ask me anything! I’ll get info from Google and reply fast.\n\nTry:\n- Who is Elon Musk?\n- Latest Python news\n- IPL 2025 schedule")
 
-# /info and /time
-@bot.message_handler(commands=['info'])
-def send_info(message):
-    bot.send_message(message.chat.id, "I'm a Telegram bot powered by Google search and Python!")
-
+# Time & Info
 @bot.message_handler(commands=['time'])
 def send_time(message):
     now = datetime.datetime.now().strftime("%H:%M:%S")
     bot.send_message(message.chat.id, f"⏰ Current time: {now}")
 
-# General Text Message Handler
+@bot.message_handler(commands=['info'])
+def send_info(message):
+    bot.send_message(message.chat.id, "I'm a smart Telegram bot built with Python and Google search.")
+
+# Text handler
 @bot.message_handler(func=lambda message: True)
 def handle_text(message):
-    text = message.text.lower()
+    text = message.text.strip().lower()
 
     if "hello" in text or "👋" in text:
-        bot.send_message(message.chat.id, "Hi there! How can I assist you?")
+        bot.send_message(message.chat.id, "Hello! What would you like to know?")
     elif "how are you" in text:
-        bot.send_message(message.chat.id, "I'm doing great, thanks! 🤖")
+        bot.send_message(message.chat.id, "Doing great! Ready to help.")
     elif "joke" in text or "🤣" in text:
         bot.send_message(message.chat.id, pyjokes.get_joke())
-    elif "quote" in text or "🌟" in text:
+    elif "quote" in text:
         quotes = [
-            "Believe in yourself and all that you are.",
-            "Push yourself, because no one else is going to do it for you.",
-            "Great things never come from comfort zones.",
-            "Don’t wait for opportunity. Create it."
+            "Push yourself, no one else will.",
+            "Success is built on consistency.",
+            "Be stronger than your excuses."
         ]
         bot.send_message(message.chat.id, random.choice(quotes))
-    elif "fact" in text or "🎭" in text:
+    elif "fact" in text:
         facts = [
-            "Octopuses have three hearts.",
-            "Honey never spoils.",
             "Sharks existed before trees!",
-            "Bananas are berries, but strawberries aren’t."
+            "Octopuses have three hearts.",
+            "Bananas are berries, but strawberries are not."
         ]
         bot.send_message(message.chat.id, random.choice(facts))
     else:
-        bot.send_message(message.chat.id, f"🔍 Searching Google for: {text}")
-        snippets = fetch_google_snippets(text)
+        bot.send_message(message.chat.id, f"🔍 Searching Google for: `{message.text}`", parse_mode="Markdown")
+        snippets, link = fetch_google_snippets(message.text)
         for snippet in snippets:
             bot.send_message(message.chat.id, f"• {snippet}")
+        if link:
+            bot.send_message(message.chat.id, f"🔗 [Click here for full Google results]({link})", parse_mode="Markdown")
 
-# Handle stickers
+# Stickers & Photos
 @bot.message_handler(content_types=['sticker'])
 def handle_sticker(message):
-    bot.send_message(message.chat.id, "Nice sticker! 😎")
+    bot.send_message(message.chat.id, "Cool sticker!")
 
-# Handle photos
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
-    bot.send_message(message.chat.id, "Cool photo! 📸")
+    bot.send_message(message.chat.id, "Nice photo!")
 
 print("Bot is running...")
 bot.polling()
