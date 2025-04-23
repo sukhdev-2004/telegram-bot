@@ -2,3 +2,5 @@ pyTelegramBotAPI
 wikipedia
 pyjokes
 googlesearch-python
+beautifulsoup4
+requests
